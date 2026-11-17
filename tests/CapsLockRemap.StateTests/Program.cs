@@ -44,4 +44,18 @@ Test("reset cancels tap and waits for release", () => {
 Test("injection failure prevents tap", () => {
     var s = new RemapState((_, _) => false); s.Reset(new() { TapKey = 27 }, false); s.Handle(20, true, 0); Assert(s.Failed); s.Handle(20, false, 10); Assert(s.Failed);
 });
-Console.WriteLine($"{passed} transition tests passed.");
+Test("startup XML scopes elevation and trigger to user, allows battery and no timeout", () => {
+    var xml = System.Xml.Linq.XDocument.Parse(StartupRegistration.BuildXml("S-1-5-21-test", @"C:\Apps & Tools\CapsLockRemap.exe"));
+    var root = xml.Root!; var ns = root.Name.Namespace;
+    string? Value(string parent, string child) => root.Element(ns + parent)?.Element(ns + child)?.Value;
+    Assert(Value("Settings", "DisallowStartIfOnBatteries") == "false");
+    Assert(Value("Settings", "StopIfGoingOnBatteries") == "false");
+    Assert(Value("Settings", "ExecutionTimeLimit") == "PT0S");
+    var principal = root.Element(ns + "Principals")!.Element(ns + "Principal")!;
+    Assert(principal.Element(ns + "UserId")!.Value == "S-1-5-21-test");
+    Assert(principal.Element(ns + "RunLevel")!.Value == "HighestAvailable");
+    Assert(principal.Element(ns + "LogonType")!.Value == "InteractiveToken");
+    Assert(root.Element(ns + "Triggers")!.Element(ns + "LogonTrigger")!.Element(ns + "UserId")!.Value == "S-1-5-21-test");
+    Assert(root.Element(ns + "Actions")!.Element(ns + "Exec")!.Element(ns + "Command")!.Value == @"C:\Apps & Tools\CapsLockRemap.exe");
+});
+Console.WriteLine($"{passed} checks passed.");

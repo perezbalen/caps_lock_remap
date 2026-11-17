@@ -11,6 +11,8 @@ internal sealed class TrayHost : ApplicationContext
     private readonly NotifyIcon tray;
     private readonly Icon icon = AppIcon.Load();
     private readonly ToolStripMenuItem enabled = new("Enabled");
+    private readonly ToolStripMenuItem startup = new("Start with Windows");
+    private readonly ToolStripMenuItem repairStartup = new("Repair startup registration…");
     private readonly System.Windows.Forms.Timer timer = new() { Interval = 1000 };
     private SettingsForm? settings;
     private readonly bool elevated = new WindowsPrincipal(WindowsIdentity.GetCurrent()).IsInRole(WindowsBuiltInRole.Administrator);
@@ -29,6 +31,11 @@ internal sealed class TrayHost : ApplicationContext
             catch (Exception ex) { MessageBox.Show(ex.Message, "Cannot change settings"); }
         };
         menu.Items.Add("Settings…", null, (_, _) => ShowSettings());
+        menu.Items.Add(startup);
+        startup.Click += (_, _) => ChangeStartup(!startup.Checked);
+        menu.Items.Add(repairStartup);
+        repairStartup.Click += (_, _) => ChangeStartup(true);
+        menu.Opening += (_, _) => RefreshStartup();
         menu.Items.Add("Retry input handling", null, (_, _) => engine.Apply(config));
         menu.Items.Add("Restart as administrator…", null, (_, _) => Elevate());
         menu.Items.Add(new ToolStripSeparator());
@@ -39,7 +46,35 @@ internal sealed class TrayHost : ApplicationContext
         SystemEvents.PowerModeChanged += PowerChanged;
         SystemEvents.SessionSwitch += SessionChanged;
         RefreshStatus();
+        RefreshStartup();
         if (first) ShowSettings();
+    }
+    private void RefreshStartup()
+    {
+        try
+        {
+            var status = StartupRegistration.Read();
+            startup.Enabled = true; startup.Checked = status.Exists;
+            startup.ToolTipText = status.Exists ? "Registered path: " + status.Path : "Start elevated at sign-in (administrator approval required)";
+            repairStartup.Visible = status.Exists && !status.Current;
+            repairStartup.ToolTipText = "Update startup to: " + StartupRegistration.Executable;
+        }
+        catch (Exception ex)
+        {
+            startup.Checked = false; startup.Enabled = false; startup.ToolTipText = "Cannot inspect startup: " + ex.Message;
+            repairStartup.Visible = false;
+        }
+    }
+    private void ChangeStartup(bool enable)
+    {
+        try
+        {
+            StartupRegistration.ChangeWithElevation(enable);
+            var status = StartupRegistration.Read();
+            if (enable ? !status.Current : status.Exists) throw new InvalidOperationException("Startup registration could not be verified.");
+        }
+        catch (Exception ex) { MessageBox.Show(ex.Message, "Cannot change startup", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        finally { RefreshStartup(); }
     }
     private void RefreshStatus()
     {

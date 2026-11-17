@@ -1,4 +1,4 @@
-# Caps Lock Remap — product and technical design
+﻿# Caps Lock Remap — product and technical design
 
 Last updated: 2026-11-16 (America/Bogota)
 
@@ -173,9 +173,10 @@ Measure idle CPU, working set, startup time, executable size, and shortcut laten
 - Completed: requirements discussion, design baseline, .NET 10.0.404 SDK pin, Windows Forms project and solution, ignore rules, and README build instructions. Existing system tools were sufficient; no installation was needed.
 - Validation: `dotnet build CapsLockRemap.slnx -c Release` passed with zero warnings/errors; self-contained win-x64 single-file publishing passed using the README command with NuGet network access. No GUI or keyboard integration validation performed.
 - Implemented prototype: tray host, hold/tap configuration, atomic settings save, dedicated hook thread, modifier ownership, manual retry, power/session reset, administrator relaunch, and per-session instance guard. Ten pure transition tests pass; Release build has zero warnings/errors.
-- Not started: elevated startup registration, silent hook-loss detection, diagnostics, and interactive integration validation. Second launch currently reports the existing instance rather than activating Settings. First launch opens Settings; automatic elevated onboarding is still pending. Explorer recovery relies on WinForms NotifyIcon behavior and needs validation.
-- No system keyboard mappings or scheduled tasks have been changed.
-- Next step: manually validate input ordering with PowerToys and elevated apps, then implement startup registration and hook health/recovery. Do not claim reliability until the acceptance matrix passes. The prototype has not been launched against the user's keyboard.
+- Startup implemented: tray checkbox reflects task existence, elevation helper runs before the instance guard, interactive per-user highest-privilege task supports battery operation and no execution limit, and stale executable paths offer repair. Startup remains opt-in; automatic onboarding/default registration is deferred. Eleven automated checks pass, including task XML; framework-dependent publish succeeded. Actual COM registration/removal, UAC, and sign-in still need interactive validation. No task was created during development.
+- Not started: silent hook-loss detection, diagnostics, and interactive integration validation. Second launch currently reports the existing instance rather than activating Settings. First launch opens Settings; automatic elevated onboarding is still pending. Explorer recovery relies on WinForms NotifyIcon behavior and needs validation.
+- No system keyboard mappings or scheduled tasks have been changed during development. The user reports the input prototype is working so far; this is not completion of the acceptance matrix.
+- Next step: manually validate input ordering with PowerToys and elevated apps, validate startup registration/UAC/sign-in, then implement hook health/recovery. Do not claim reliability until the acceptance matrix passes. The prototype has not been launched against the user's keyboard.
 - Engineering questions to resolve through prototyping: safe hook health verification, modifier reconciliation with other injectors, exact elevated-launch behavior, and supported single-key tap choices.
 
 For each future work session, update this section with completed work, exact build/test commands and results, known problems, and the next concrete action. Distinguish implemented behavior from planned behavior.
@@ -197,3 +198,4 @@ For each future work session, update this section with completed work, exact bui
 - [Task Scheduler interactive logon type](https://learn.microsoft.com/en-us/windows/win32/taskschd/taskschedulerschema-logontype-principaltype-element)
 
 Check current primary documentation when implementing platform-specific details. These references inform the design; they do not establish that the proposed recovery mechanisms have been validated.
+

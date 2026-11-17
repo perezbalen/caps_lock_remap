@@ -8,7 +8,7 @@ Turn Caps Lock into an extra modifier key on Windows 11. Hold it to send **Ctrl 
 
 For example, **Caps Lock + S** sends **Ctrl + Alt + Shift + S**, ready for shortcuts configured in PowerToys or other applications. Caps Lock Remap supplies the key combination; your shortcut manager decides what it does.
 
-> **Early prototype:** input handling and the tray interface are implemented, but real-world keyboard, PowerToys, and sleep/wake validation is still pending. Automatic startup and detection of silently removed keyboard hooks are not implemented yet.
+> **Early prototype:** input handling and the tray interface are implemented, but real-world keyboard, PowerToys, and sleep/wake validation is still pending. Elevated sign-in startup is implemented; detection of silently removed keyboard hooks is not implemented yet.
 
 ## Features
 
@@ -19,6 +19,7 @@ For example, **Caps Lock + S** sends **Ctrl + Alt + Shift + S**, ready for short
 - Modifier tracking designed to preserve keys you are physically holding.
 - Tray controls for enabling/disabling, settings, retrying input handling, and exiting.
 - Manual restart as administrator for use with elevated desktop applications.
+- Start with Windows through an elevated, per-user sign-in task, including battery operation.
 - Settings saved in your Windows user profile.
 - Portable, framework-dependent executable built with C# and Windows Forms.
 
@@ -49,6 +50,8 @@ For shortcuts in administrator applications, right-click the tray icon and choos
 | --- | --- |
 | Enabled | Toggle Caps Lock remapping |
 | Settings… | Change hold modifiers, tap action, and timing |
+| Start with Windows | Register or remove elevated sign-in startup (may request administrator approval) |
+| Repair startup registration… | Update the registered executable path; shown when registration needs repair |
 | Retry input handling | Reset input state and reinstall the keyboard hook |
 | Restart as administrator… | Relaunch with elevated privileges |
 | Exit | Release app-owned modifiers and quit |
@@ -63,7 +66,7 @@ Configuration is saved to:
 %LOCALAPPDATA%\CapsLockRemap\settings.json
 ```
 
-To remove the prototype, exit it from the tray and delete the executable. Delete the settings folder as well if you want to remove your preferences. The current version does not register startup tasks or change system keyboard mappings.
+To remove the prototype, first uncheck **Start with Windows**, then exit it from the tray and delete the executable. Delete the settings folder as well if you want to remove your preferences. Startup is opt-in through the tray checkbox. It registers only the current user's `CapsLockRemap.SignIn.<user SID>` task in Task Scheduler. Keep the executable at its registered path; if moved, launch the new copy and choose **Repair startup registration…**. No system keyboard mappings are changed.
 
 ## Known limitations
 
@@ -71,7 +74,7 @@ To remove the prototype, exit it from the tray and delete the executable. Delete
 - Sleep/resume and lock/unlock reset handling is implemented, but repeated lid, power, and session transitions still need testing on real hardware.
 - Windows can silently remove a keyboard hook. Automatic detection of that condition is not implemented; the tray may still appear enabled. Use **Retry input handling** if mapping stops working.
 - The app cannot remap keys while its process is stopped. Unexpected termination may leave injected modifier state behind.
-- Start with Windows, automatic crash recovery, and diagnostic logging remain planned work.
+- Automatic crash recovery and diagnostic logging remain planned work. Startup registration, UAC cancellation, and actual sign-in behavior still require interactive validation.
 - A second launch reports that an instance is already running rather than opening its Settings window.
 - Remote Desktop, virtual machines, games, and ARM64 are outside the initial supported scope.
 
@@ -105,10 +108,11 @@ artifacts/win-x64/CapsLockRemap.exe
 
 The Portable profile targets Windows x64, embeds debug symbols, and excludes the .NET runtime. Build artifacts are ignored by Git. Publishing does not launch the app or configure startup.
 
-Ten transition checks currently cover repeat suppression, tap behavior, physical modifier overlap, reset behavior, and input-injection failure. Manual Windows integration testing remains necessary.
+Ten transition checks and one startup task-definition check currently cover repeat suppression, tap behavior, physical modifier overlap, reset behavior, and input-injection failure. Manual Windows integration testing remains necessary.
 
 ## Contributing
 
 Read [docs/design.md](docs/design.md) before changing behavior. Keep its implementation status and acceptance checklist current, and include relevant build and validation results with changes.
 
 When reporting an input problem, include your Windows version, whether the app was elevated, your hold/tap settings, any other keyboard remappers in use, and steps to reproduce. Do not include sensitive text or personal shortcut contents.
+
