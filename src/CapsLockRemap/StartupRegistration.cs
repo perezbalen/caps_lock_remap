@@ -11,6 +11,20 @@ internal static class StartupRegistration
 {
     private static string UserId => WindowsIdentity.GetCurrent().User!.Value;
     private static string TaskName => "CapsLockRemap.SignIn." + UserId;
+    internal static bool SameUser(string? saved, string sid)
+    {
+        if (string.IsNullOrWhiteSpace(saved)) return false;
+        if (string.Equals(saved, sid, StringComparison.OrdinalIgnoreCase)) return true;
+        try { return ((SecurityIdentifier)new NTAccount(saved).Translate(typeof(SecurityIdentifier))).Value == sid; }
+        catch (IdentityNotMappedException) { return false; }
+    }
+    // COM interop can translate ERROR_FILE_NOT_FOUND into FileNotFoundException,
+    // not just COMException. Match the HRESULT only at task lookup/deletion.
+    internal static T MissingTaskOrDefault<T>(Func<T> operation, T fallback)
+    {
+        try { return operation(); }
+        catch (Exception ex) when (ex.HResult == unchecked((int)0x80070002)) { return fallback; }
+    }
     public static string Executable => Environment.ProcessPath ?? throw new InvalidOperationException("Cannot locate application.");
     public static string BuildXml(string user, string executable)
     {
@@ -40,9 +54,8 @@ internal static class StartupRegistration
     }
     public static StartupStatus Read() => WithFolder<StartupStatus>(folder =>
     {
-        object task;
-        try { task = folder.GetTask(TaskName); }
-        catch (COMException ex) when (ex.HResult == unchecked((int)0x80070002)) { return new(false, false, null); }
+        object? task = MissingTaskOrDefault<object?>(() => folder.GetTask(TaskName), null);
+        if (task == null) return new(false, false, null);
         try
         {
             var xml = XDocument.Parse((string)((dynamic)task).Xml);
@@ -51,9 +64,9 @@ internal static class StartupRegistration
             string? path = root.Element(ns + "Actions")?.Element(ns + "Exec")?.Element(ns + "Command")?.Value;
             bool current = string.Equals(path, Executable, StringComparison.OrdinalIgnoreCase)
                 && root.Element(ns + "Principals")?.Element(ns + "Principal")?.Element(ns + "RunLevel")?.Value == "HighestAvailable"
-                && root.Element(ns + "Principals")?.Element(ns + "Principal")?.Element(ns + "UserId")?.Value == UserId
+                && SameUser(root.Element(ns + "Principals")?.Element(ns + "Principal")?.Element(ns + "UserId")?.Value, UserId)
                 && root.Element(ns + "Principals")?.Element(ns + "Principal")?.Element(ns + "LogonType")?.Value == "InteractiveToken"
-                && root.Element(ns + "Triggers")?.Element(ns + "LogonTrigger")?.Element(ns + "UserId")?.Value == UserId
+                && SameUser(root.Element(ns + "Triggers")?.Element(ns + "LogonTrigger")?.Element(ns + "UserId")?.Value, UserId)
                 && root.Element(ns + "Actions")?.Element(ns + "Exec")?.Element(ns + "Arguments")?.Value == "--startup"
                 && root.Element(ns + "Settings")?.Element(ns + "DisallowStartIfOnBatteries")?.Value == "false"
                 && root.Element(ns + "Settings")?.Element(ns + "StopIfGoingOnBatteries")?.Value == "false"
@@ -72,8 +85,7 @@ internal static class StartupRegistration
         }
         else
         {
-            try { folder.DeleteTask(TaskName, 0); }
-            catch (COMException ex) when (ex.HResult == unchecked((int)0x80070002)) { }
+            MissingTaskOrDefault(() => { folder.DeleteTask(TaskName, 0); return true; }, false);
         }
         return true;
     });

@@ -170,6 +170,10 @@ Measure idle CPU, working set, startup time, executable size, and shortcut laten
 
 ## Implementation status and handoff
 
+- Startup verification fix: inspected the user's saved task read-only; Task Scheduler canonicalizes the logon trigger SID to an account name. Verification now resolves account names to SIDs rather than comparing raw strings. The existing task points to `C:\Apps\CapsLock\CapsLockRemap.exe`; replace that copy with the updated build. No task was modified during this diagnosis.
+
+- Startup bug fix: missing-task HRESULT `0x80070002` can be translated by .NET to `FileNotFoundException`; lookup/deletion now handle that code regardless of exception class, while retaining access-denied errors. Regression checks added; all 12 checks and portable publishing pass. User still needs to retry the updated executable and complete UAC/sign-in validation.
+
 - Completed: requirements discussion, design baseline, .NET 10.0.404 SDK pin, Windows Forms project and solution, ignore rules, and README build instructions. Existing system tools were sufficient; no installation was needed.
 - Validation: `dotnet build CapsLockRemap.slnx -c Release` passed with zero warnings/errors; self-contained win-x64 single-file publishing passed using the README command with NuGet network access. No GUI or keyboard integration validation performed.
 - Implemented prototype: tray host, hold/tap configuration, atomic settings save, dedicated hook thread, modifier ownership, manual retry, power/session reset, administrator relaunch, and per-session instance guard. Ten pure transition tests pass; Release build has zero warnings/errors.

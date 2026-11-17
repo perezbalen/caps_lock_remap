@@ -58,4 +58,20 @@ Test("startup XML scopes elevation and trigger to user, allows battery and no ti
     Assert(root.Element(ns + "Triggers")!.Element(ns + "LogonTrigger")!.Element(ns + "UserId")!.Value == "S-1-5-21-test");
     Assert(root.Element(ns + "Actions")!.Element(ns + "Exec")!.Element(ns + "Command")!.Value == @"C:\Apps & Tools\CapsLockRemap.exe");
 });
+Test("missing startup task handles translated and raw COM errors", () => {
+    Assert(StartupRegistration.MissingTaskOrDefault<object>(() => throw new FileNotFoundException(), null!) == null);
+    Assert(!StartupRegistration.MissingTaskOrDefault<bool>(() => throw new System.Runtime.InteropServices.COMException("Missing task", unchecked((int)0x80070002)), false));
+    Assert(StartupRegistration.MissingTaskOrDefault(() => true, false));
+    bool denied = false;
+    try { StartupRegistration.MissingTaskOrDefault<bool>(() => throw new UnauthorizedAccessException(), false); }
+    catch (UnauthorizedAccessException) { denied = true; }
+    Assert(denied);
+});
+Test("scheduler account names and SIDs identify the same user", () => {
+    using var user = System.Security.Principal.WindowsIdentity.GetCurrent();
+    Assert(StartupRegistration.SameUser(user.Name, user.User!.Value));
+    Assert(StartupRegistration.SameUser(user.User.Value, user.User.Value));
+    Assert(!StartupRegistration.SameUser(null, user.User.Value));
+    Assert(!StartupRegistration.SameUser("S-1-5-18", user.User.Value));
+});
 Console.WriteLine($"{passed} checks passed.");
