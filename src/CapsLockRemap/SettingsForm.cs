@@ -20,7 +20,10 @@ internal sealed class SettingsForm : Form
         var modifiers = new FlowLayoutPanel { AutoSize = true };
         modifiers.Controls.AddRange([ctrl, alt, shift, win]);
         ctrl.Checked = config.Control; alt.Checked = config.Alt; shift.Checked = config.Shift; win.Checked = config.Windows;
-        tap.DataSource = Configuration.TapChoices.ToList(); tap.DisplayMember = "Value"; tap.ValueMember = "Key"; tap.SelectedValue = config.TapKey;
+        // An unbound list keeps selection stable when the form's binding context is created.
+        tap.DisplayMember = "Value";
+        foreach (var choice in Configuration.TapChoices) tap.Items.Add(choice);
+        tap.SelectedItem = new KeyValuePair<int, string>(config.TapKey, Configuration.TapChoices[config.TapKey]);
         timing.Value = config.TapMilliseconds;
         layout.Controls.Add(new Label { Text = "Hold Caps Lock to press:", AutoSize = true });
         layout.Controls.Add(modifiers);
@@ -32,7 +35,7 @@ internal sealed class SettingsForm : Form
         var cancel = new Button { Text = "Cancel", DialogResult = DialogResult.Cancel, AutoSize = true };
         save.Click += (_, _) =>
         {
-            Result = config with { Control = ctrl.Checked, Alt = alt.Checked, Shift = shift.Checked, Windows = win.Checked, TapKey = (int)tap.SelectedValue!, TapMilliseconds = (int)timing.Value };
+            Result = config with { Control = ctrl.Checked, Alt = alt.Checked, Shift = shift.Checked, Windows = win.Checked, TapKey = ((KeyValuePair<int, string>)tap.SelectedItem!).Key, TapMilliseconds = (int)timing.Value };
             try { Result.Save(); DialogResult = DialogResult.OK; Close(); }
             catch (Exception ex) { MessageBox.Show(this, ex.Message, "Cannot save settings", MessageBoxButtons.OK, MessageBoxIcon.Error); }
         };

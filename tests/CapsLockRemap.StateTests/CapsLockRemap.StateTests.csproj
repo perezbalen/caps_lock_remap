@@ -10,5 +10,8 @@
     <Compile Include="../../src/CapsLockRemap/RemapState.cs" Link="RemapState.cs" />
     <Compile Include="../../src/CapsLockRemap/Configuration.cs" Link="Configuration.cs" />
     <Compile Include="../../src/CapsLockRemap/StartupRegistration.cs" Link="StartupRegistration.cs" />
+    <Compile Include="../../src/CapsLockRemap/SettingsForm.cs" Link="SettingsForm.cs" />
+    <Compile Include="../../src/CapsLockRemap/AppIcon.cs" Link="AppIcon.cs" />
+    <EmbeddedResource Include="../../icons/icon.ico" LogicalName="CapsLockRemap.AppIcon.ico" />
   </ItemGroup>
 </Project>

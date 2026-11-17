@@ -74,4 +74,23 @@ Test("scheduler account names and SIDs identify the same user", () => {
     Assert(!StartupRegistration.SameUser(null, user.User.Value));
     Assert(!StartupRegistration.SameUser("S-1-5-18", user.User.Value));
 });
+Test("settings retains every tap action when the window is created", () => {
+    Exception? failure = null;
+    var thread = new Thread(() => {
+        try
+        {
+            foreach (var choice in Configuration.TapChoices)
+            {
+                using var form = new SettingsForm(new() { TapKey = choice.Key });
+                _ = form.Handle;
+                var tap = form.Controls.OfType<FlowLayoutPanel>().Single().Controls.OfType<ComboBox>().Single();
+                Assert(tap.Text == choice.Value);
+            }
+        }
+        catch (Exception ex) { failure = ex; }
+    });
+    thread.SetApartmentState(ApartmentState.STA);
+    thread.Start(); thread.Join();
+    if (failure != null) throw failure;
+});
 Console.WriteLine($"{passed} checks passed.");

@@ -170,6 +170,8 @@ Measure idle CPU, working set, startup time, executable size, and shortcut laten
 
 ## Implementation status and handoff
 
+- Tap settings fix: replaced the dropdown's data binding with explicit items because form binding-context initialization reset the saved selection to "Do nothing". A regression check reproduced the original failure and now verifies all six saved tap actions survive window creation. All 14 checks pass; Release solution build passes with zero warnings/errors. Portable publishing succeeded with NU1900 warnings because NuGet vulnerability metadata was unreachable. Updated executable: `artifacts/win-x64/CapsLockRemap.exe`. Replace the installed copy and verify saving/reopening Settings interactively.
+
 - Startup verification fix: inspected the user's saved task read-only; Task Scheduler canonicalizes the logon trigger SID to an account name. Verification now resolves account names to SIDs rather than comparing raw strings. The existing task points to `C:\Apps\CapsLock\CapsLockRemap.exe`; replace that copy with the updated build. No task was modified during this diagnosis.
 
 - Startup bug fix: missing-task HRESULT `0x80070002` can be translated by .NET to `FileNotFoundException`; lookup/deletion now handle that code regardless of exception class, while retaining access-denied errors. Regression checks added; all 12 checks and portable publishing pass. User still needs to retry the updated executable and complete UAC/sign-in validation.
