@@ -2,7 +2,7 @@
 
 Last updated: 2026-11-16 (America/Bogota)
 
-Status: Design baseline with a buildable Windows Forms scaffold. Application behavior is not implemented yet.
+Status: First tray/input prototype implemented and transition-tested; Windows integration validation and reliability work remain incomplete.
 
 ## Purpose and continuity
 
@@ -35,7 +35,7 @@ These are the initial engineering choices, not additional requirements from the 
 - C# and a supported .NET LTS release; choose and pin the actual SDK when implementation starts.
 - Windows Forms for native controls, notification-area integration, accessibility, and straightforward deployment.
 - Direct Win32 interop for keyboard interception, input injection, session and power notifications, and task scheduling.
-- Self-contained, single-file Windows executable. Verify actual extraction/deployment behavior during packaging; do not promise that single-file publishing never uses temporary files.
+- Framework-dependent single-file Windows executable, per the user's packaging decision after reviewing the 111 MiB self-contained build. Requires the .NET 10 Desktop Runtime (x64); it is already installed on the user's laptop. Publish with the Portable profile; debug symbols are embedded.
 - Initial target Windows x64. Confirm whether ARM64 output is needed before claiming ARM64 support.
 - Run one application instance per interactive user session.
 - Use a dedicated message-loop thread for the keyboard hook, separate from settings UI, persistence, logging, and recovery orchestration.
@@ -172,9 +172,10 @@ Measure idle CPU, working set, startup time, executable size, and shortcut laten
 
 - Completed: requirements discussion, design baseline, .NET 10.0.404 SDK pin, Windows Forms project and solution, ignore rules, and README build instructions. Existing system tools were sufficient; no installation was needed.
 - Validation: `dotnet build CapsLockRemap.slnx -c Release` passed with zero warnings/errors; self-contained win-x64 single-file publishing passed using the README command with NuGet network access. No GUI or keyboard integration validation performed.
-- Not started: tray/input behavior, automated tests, startup task registration, and integration validation.
+- Implemented prototype: tray host, hold/tap configuration, atomic settings save, dedicated hook thread, modifier ownership, manual retry, power/session reset, administrator relaunch, and per-session instance guard. Ten pure transition tests pass; Release build has zero warnings/errors.
+- Not started: elevated startup registration, silent hook-loss detection, diagnostics, and interactive integration validation. Second launch currently reports the existing instance rather than activating Settings. First launch opens Settings; automatic elevated onboarding is still pending. Explorer recovery relies on WinForms NotifyIcon behavior and needs validation.
 - No system keyboard mappings or scheduled tasks have been changed.
-- Next step: replace the generated form with the tray host and create the input prototype from milestones 1–2.
+- Next step: manually validate input ordering with PowerToys and elevated apps, then implement startup registration and hook health/recovery. Do not claim reliability until the acceptance matrix passes. The prototype has not been launched against the user's keyboard.
 - Engineering questions to resolve through prototyping: safe hook health verification, modifier reconciliation with other injectors, exact elevated-launch behavior, and supported single-key tap choices.
 
 For each future work session, update this section with completed work, exact build/test commands and results, known problems, and the next concrete action. Distinguish implemented behavior from planned behavior.
@@ -183,6 +184,7 @@ For each future work session, update this section with completed work, exact bui
 
 | Date | Decision | Reason |
 | --- | --- | --- |
+| 2026-11-16 | Framework-dependent single-file publishing replaces self-contained delivery | User requested a smaller executable; desktop runtime is already installed |
 | 2026-11-16 | Windows 11 tray app with configurable hold/tap behavior | Confirmed user requirements |
 | 2026-11-16 | Proposed C#/.NET with Windows Forms and Win32 interop | Maintainability, native controls, portable self-contained distribution |
 | 2026-11-16 | Proposed elevated interactive scheduled task | Elevated-app support and sign-in startup |
